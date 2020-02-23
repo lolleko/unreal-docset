@@ -1,34 +1,37 @@
-.toc{
+.toc {
     display: none;
 }
-#seeAlso{
+#seeAlso {
     display: none;
 }
-#contentContainer{
+#contentContainer {
     margin-left: 0px !important;
 }
-#maincol{
+#page-container {
+    border-bottom: none;
+}
+#maincol {
     width: auto !important; padding: 0px 28px 28px 28px;
 }
-#banner{
+#banner {
     display: none;
 }
-#egf{
+#egf {
     padding: 0;
 }
-.footer-social-container{
+.footer-social-container {
     display: none;
 }
-.footer-links-container{
+.footer-links-container {
     display: none;
 }
-.egf.legal{
+.egf.legal {
     padding: 0;
 }
-#pageTags{
+#pageTags {
     display: none;
 }
-#crumbs{
+#crumbs {
     float: none;
     width: auto;
     display: block;
