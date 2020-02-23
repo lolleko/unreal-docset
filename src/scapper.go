@@ -9,12 +9,15 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gocolly/colly"
 )
 
 func scrapDocs(docsetDocumentsPath string, db *sql.DB) {
+	retried := new(sync.Map)
+
 	c := colly.NewCollector(
 		colly.AllowedDomains("docs.unrealengine.com"),
 		colly.Async(true),
@@ -34,6 +37,14 @@ func scrapDocs(docsetDocumentsPath string, db *sql.DB) {
 
 	c.OnError(func(r *colly.Response, err error) {
 		log.Println("Something went wrong visting", r.Request.URL, err)
+
+		_, hasRetried := retried.Load(r.Request.URL.String())
+		if !hasRetried {
+			retried.Store(r.Request.URL.String(), true)
+			r.Request.Retry()
+		} else {
+			log.Println("Already retried", r.Request.URL.String())
+		}
 	})
 
 	c.OnResponse(func(r *colly.Response) {
@@ -54,26 +65,28 @@ func scrapDocs(docsetDocumentsPath string, db *sql.DB) {
 
 		absoluteLocalPath := filepath.Join(docsetDocumentsPath, relativeLocalPath)
 
-		err := os.MkdirAll(filepath.Dir(absoluteLocalPath), 0755)
-		if err != nil {
-			fmt.Println(err)
-		}
-
-		if filepath.Ext(r.Request.URL.String()) == ".html" {
-			transformedHTML, entryName, entryType, err := transformHTML(r.Request.URL.String(), bytes.NewReader(r.Body))
+		if !strings.ContainsAny(absoluteLocalPath, "?") && !strings.ContainsAny(absoluteLocalPath, "=") {
+			err := os.MkdirAll(filepath.Dir(absoluteLocalPath), 0755)
 			if err != nil {
 				fmt.Println(err)
 			}
 
-			r.Body = []byte(transformedHTML)
+			if filepath.Ext(r.Request.URL.String()) == ".html" {
+				transformedHTML, entryName, entryType, err := transformHTML(r.Request.URL.String(), bytes.NewReader(r.Body))
+				if err != nil {
+					fmt.Println(err)
+				}
 
-			entryPath, _ := filepath.Rel(docsetDocumentsPath, absoluteLocalPath)
-			addEntryToDatabase(db, entryName, entryType, entryPath)
-		}
+				r.Body = []byte(transformedHTML)
 
-		err = r.Save(absoluteLocalPath)
-		if err != nil {
-			fmt.Println(err)
+				entryPath, _ := filepath.Rel(docsetDocumentsPath, absoluteLocalPath)
+				addEntryToDatabase(db, entryName, entryType, entryPath)
+			}
+
+			err = r.Save(absoluteLocalPath)
+			if err != nil {
+				fmt.Println(err)
+			}
 		}
 	})
 

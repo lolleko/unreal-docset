@@ -25,5 +25,4 @@ The resulting docset should be around 4.5GB in size.
 
 ### Known issues
 
-* Failed http requests are not handled yet (this might lead to a small amount of missing pages)
 * Page [types](https://kapeli.com/docsets#supportedentrytypes) are not always inferred correctly.

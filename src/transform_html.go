@@ -177,6 +177,7 @@ func resolveAbsoluteRef(absoluteRef string, htmlPath string) string {
 	// fix some broken links
 	strippedRef = strings.ReplaceAll(strippedRef, "https:///docs.unrealengine.com", "")
 	strippedRef = strings.ReplaceAll(strippedRef, "http://docs.unrealengine.com", "")
+	strippedRef = strings.ReplaceAll(strippedRef, "https://", "")
 	strippedRef = strings.ReplaceAll(strippedRef, "/latest/INT/", "/en-US/")
 
 	strippedURL := strings.ReplaceAll(htmlPath, "https://docs.unrealengine.com", "")
