@@ -15,7 +15,7 @@ Should also work with [Zeal](https://zealdocs.org) and in a regular browser (jus
 * Run `./bin/unreal-docset UnrealEngineInstallDir/Engine/Documentation/Builds`
 
 The API documentation will be build from the archives in `Engine/Documentation/Builds`.
-Therefore the path to `Engine/Documentation/Builds` is a required, this directory should be located i your UE4 install dir.
+Therefore the path to `Engine/Documentation/Builds` is required, this directory should be located i your UE4 install dir.
 
 The remaining documentation will be scrapped from `docs.unrealengine.com`.
 Scrapping requires around 3GB bandwidth and around 100k http requests.
