@@ -1,0 +1,52 @@
+.toc{
+    display: none;
+}
+#seeAlso{
+    display: none;
+}
+#contentContainer{
+    margin-left: 0px !important;
+}
+#maincol{
+    width: auto !important; padding: 0px 28px 28px 28px;
+}
+#banner{
+    display: none;
+}
+#egf{
+    padding: 0;
+}
+.footer-social-container{
+    display: none;
+}
+.footer-links-container{
+    display: none;
+}
+.egf.legal{
+    padding: 0;
+}
+#pageTags{
+    display: none;
+}
+#crumbs{
+    float: none;
+    width: auto;
+    display: block;
+}
+.hero {
+    background-image: none;
+    background-color: rgb(42, 42, 42);
+}
+.hero.background .imgContainer::after {
+    background-image: none;
+}
+.hero h1 {
+    text-shadow: none;
+}
+.hero h2 {
+    text-shadow: none;
+}
+/* Fix topics beeing pushed down randomly (weird inline-block behavior) */
+.topicContainer {
+    vertical-align: top;
+}
