@@ -6,11 +6,27 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/tdewolff/minify/v2"
+	"github.com/tdewolff/minify/v2/css"
+	"github.com/tdewolff/minify/v2/html"
 )
 
-func transformHTML(htmlPath string, r io.Reader) (string, string, string, error) {
+type entry struct {
+	html           string
+	name           string
+	ttype          string
+	isValid        bool
+	ommitFromIndex bool
+}
+
+func transformHTML(htmlPath string, r io.Reader) (entry, error) {
+
+	minifier := minify.New()
+	minifier.AddFunc("text/css", css.Minify)
+	minifier.AddFunc("text/html", html.Minify)
 
 	doc, err := goquery.NewDocumentFromReader(r)
 
@@ -25,7 +41,7 @@ func transformHTML(htmlPath string, r io.Reader) (string, string, string, error)
 		})
 	})
 
-	doc.Find("#page_head, #navWrapper, #splitter, #footer, #skinContainer, #feedbackButton, #feedbackMessage, #osContainer, #announcement").Each(func(i int, s *goquery.Selection) {
+	doc.Find("#page_head, #navWrapper, #splitter, #footer, #skinContainer, #feedbackButton, #feedbackMessage, #osContainer, #announcement, #courses").Each(func(i int, s *goquery.Selection) {
 		s.Remove()
 	})
 
@@ -34,8 +50,15 @@ func transformHTML(htmlPath string, r io.Reader) (string, string, string, error)
 		s.SetAttr("href", resolveAbsoluteRef(s.AttrOr("href", ""), htmlPath))
 	})
 
+	// Newer UE docs use lazy loading we do not need that on a static site
+	doc.Find("img[data-src]").Each(func(i int, s *goquery.Selection) {
+		s.SetAttr("src", s.AttrOr("data-src", ""))
+		s.RemoveAttr("data-src")
+		s.RemoveClass("lazy-load")
+	})
+
 	// add some exceptions for dark mode
-	doc.Find(".hero, .graph, iframe.embedded_video").Each(func(i int, s *goquery.Selection) {
+	doc.Find(".hero, .graph, iframe.embedded_video, .topics.item .subject, .topics.item .img_container, .topics.item img, .topics.item .color_container, .hero.background .imgContainer img").Each(func(i int, s *goquery.Selection) {
 		s.AddClass("dash-ignore-dark-mode")
 	})
 
@@ -46,8 +69,11 @@ func transformHTML(htmlPath string, r io.Reader) (string, string, string, error)
 	// 	s.AddClass("dashAnchor")
 	// })
 
-	// inject style overrides
+	// inject styles
 	doc.Find("head").Each(func(i int, s *goquery.Selection) {
+		for _, cssFile := range extraCSSFiles {
+			s.AppendHtml(`<link rel="stylesheet" href=" ` + resolveAbsoluteRef(cssFile, htmlPath) + ` ">`)
+		}
 		s.AppendHtml(`<link rel="stylesheet" href=" ` + resolveAbsoluteRef("/Include/CSS/dash_style_overrides.css", htmlPath) + ` ">`)
 	})
 
@@ -57,18 +83,35 @@ func transformHTML(htmlPath string, r io.Reader) (string, string, string, error)
 	})
 
 	html, err := doc.Html()
+	if err != nil {
+		panic(err)
+	}
+	html, err = minifier.String("text/html", html)
+	if err != nil {
+		panic(err)
+	}
 
-	entryName, entryType := extractNameAndType(doc, htmlPath)
+	entryName, entryType, isValid, ommitFromIndex := extractNameAndType(doc, htmlPath)
 
-	return html, entryName, entryType, err
+	return entry{
+		html:           html,
+		name:           entryName,
+		ttype:          entryType,
+		isValid:        isValid,
+		ommitFromIndex: ommitFromIndex,
+	}, err
 }
 
-func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string) {
+func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string, bool, bool) {
 	// determine name and type
 
 	entryType := ""
 
 	entryName := filepath.Base(htmlPath)
+
+	isValid := true
+
+	ommitFromIndex := false
 
 	if strings.Contains(strings.ToUpper(htmlPath), strings.ToUpper("/BlueprintAPI/")) {
 		doc.Find("#actions").Each(func(i int, s *goquery.Selection) {
@@ -93,35 +136,35 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string)
 		doc.Find(".simplecode_api").Each(func(i int, s *goquery.Selection) {
 			syntaxText := strings.TrimSpace(s.Text())
 
-			matchedClass, err := regexp.MatchString("(?m)^class\\s+[UA]\\w*", syntaxText)
+			matchedClass, err := regexp.MatchString(`(?m)^class\s+[UAS]\w*`, syntaxText)
 
 			if err == nil && matchedClass {
 				entryType = "Class"
 				return
 			}
 
-			matchedStruct, err := regexp.MatchString("(?m)^struct\\s+F\\w*", syntaxText)
+			matchedStruct, err := regexp.MatchString(`(?m)(^|>)((struct)|(class))\s+(F|T)\w*`, syntaxText)
 
 			if err == nil && matchedStruct {
 				entryType = "Struct"
 				return
 			}
 
-			matchedInterface, err := regexp.MatchString("(?m)^class\\s+I\\w*", syntaxText)
+			matchedInterface, err := regexp.MatchString(`(?m)^class\s+I\w*`, syntaxText)
 
 			if err == nil && matchedInterface {
 				entryType = "Interface"
 				return
 			}
 
-			matchedEnum, err := regexp.MatchString("(?m)^enum\\s+(class\\s+)?E\\w*\\s*{", syntaxText)
+			matchedEnum, err := regexp.MatchString(`(?m)^enum\s+(class\s+)?E\w*\s*{`, syntaxText)
 
 			if err == nil && matchedEnum {
 				entryType = "Enum"
 				return
 			}
 
-			matchedProperty, err := regexp.MatchString("(?m)^UPROPERTY\\(", syntaxText)
+			matchedProperty, err := regexp.MatchString(`(?m)^UPROPERTY\(`, syntaxText)
 
 			if err == nil && matchedProperty {
 				entryType = "Property"
@@ -154,13 +197,21 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string)
 			entryType = "Guide"
 		}
 
+		// Normal method
 		doc.Find("meta[name='title']").Each(func(i int, s *goquery.Selection) {
 			entryName, _ = s.Attr("content")
 			if strings.Contains(entryName, "::") {
 				entryType = "Method"
 			}
+
+			// Overloaded method
+			parts := strings.Split(htmlPath, "/")
+			if len(parts) >= 2 && unicode.IsDigit([]rune(parts[len(parts)-2])[0]) {
+				ommitFromIndex = true
+			}
 		})
 
+		// Overload list
 		doc.Find(".info").Each(func(i int, s *goquery.Selection) {
 			if strings.Contains(s.Text(), "Overload list") {
 				entryName = filepath.Base(filepath.Dir(filepath.Dir(htmlPath))) + "::" + entryName
@@ -169,7 +220,7 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string)
 		})
 	}
 
-	return entryName, entryType
+	return entryName, entryType, isValid, ommitFromIndex
 }
 
 func resolveAbsoluteRef(absoluteRef string, htmlPath string) string {

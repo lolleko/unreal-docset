@@ -23,23 +23,6 @@ func main() {
 		panic("Resource dir not found please specify with --resourceDir [PathToResourceDir]")
 	}
 
-	tail := flag.Args()
-	if len(tail) < 1 {
-		panic("Path to Engine/Documentation/Builds dir is required")
-	}
-
-	unrealDocumentationBuild := tail[0]
-
-	cppDocumentationArchivePath := filepath.Join(unrealDocumentationBuild, "CppAPI-HTML.tgz")
-
-	blueprintDocumentationArchivePath := filepath.Join(unrealDocumentationBuild, "BlueprintAPI-HTML.tgz")
-
-	_, err = os.Stat(cppDocumentationArchivePath)
-	_, err2 := os.Stat(blueprintDocumentationArchivePath)
-	if os.IsNotExist(err) || os.IsNotExist(err2) {
-		panic("Path to Engine/Documentation/Builds is invalid! Could not find documentation archives make sure you have them installed.")
-	}
-
 	const docsetName = "UnrealEngine4.docset"
 
 	docsetPath := filepath.Join(outDir, docsetName)
@@ -66,17 +49,6 @@ func main() {
 
 	os.MkdirAll(filepath.Join(docsetDocumentsPath, "Include/CSS/"), 0755)
 	copyFile(filepath.Join(resourceDir, "dash_style_overrides.css"), filepath.Join(docsetDocumentsPath, "Include/CSS/dash_style_overrides.css"))
-
-	// Untar API
-	err = Untar(docsetDocumentsPath, filepath.Join(unrealDocumentationBuild, "CppAPI-HTML.tgz"), db)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	err = Untar(docsetDocumentsPath, filepath.Join(unrealDocumentationBuild, "BlueprintAPI-HTML.tgz"), db)
-	if err != nil {
-		fmt.Println(err)
-	}
 
 	// Scrap remaining docs from www
 	scrapDocs(docsetDocumentsPath, db)
