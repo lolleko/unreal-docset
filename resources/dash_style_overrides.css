@@ -49,6 +49,9 @@
 .hero h2 {
     text-shadow: none;
 }
+.hero a {
+    color: #fff;
+}
 /* Fix topics beeing pushed down randomly (weird inline-block behavior) */
 .topicContainer {
     vertical-align: top;

@@ -17,6 +17,7 @@
 
 # Build artifacts
 *.docset
+*.docset.*
 *.tgz
 unreal-docset
 bin/

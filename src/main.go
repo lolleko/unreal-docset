@@ -55,7 +55,7 @@ func main() {
 
 	copyFile(filepath.Join(docsetDocumentsPath, "Include", "Images", "site_icon.png"), filepath.Join(docsetPath, "icon.png"))
 
-	// Not sure why we remove this, navigationbar is not included anyway since all script tags are remove
+	// Not sure why we remove this, navigationbar is not included anyway since all script tags are removed
 	// mayber required later for toc support
 	jsFiles, err := filepath.Glob(filepath.Join(docsetDocumentsPath, "Include/Javascript/navigationBar*.js"))
 

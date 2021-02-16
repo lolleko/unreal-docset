@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	hhtml "html"
 	"io"
 	"log"
 	"path/filepath"
@@ -82,11 +84,36 @@ func transformHTML(htmlPath string, r io.Reader) (entry, error) {
 		s.Remove()
 	})
 
+	// remove markdown links
+	doc.Find("body").Each(func(i int, s *goquery.Selection) {
+		bodyHTML, err := s.Html()
+
+		if err != nil {
+			panic(err)
+		}
+
+		// TODO move regex so we dont compile everytime
+		linkRegexp := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
+
+		htmlWithoutMarkdown := linkRegexp.ReplaceAllStringFunc(bodyHTML, func(match string) string {
+			submatches := linkRegexp.FindAllStringSubmatch(match, -1)
+			// we dont have todo any nil checking here ebcause we already now how the FindAllStringSubmatch will lokk like
+			// this is done to modify the link before insertion (cant be done with $2/$1 replacement directly)
+
+			// TODO dont hardcode base path, but tbh im not sure which onvention those md links use sicne they are broken in the online version aswell
+			// just guessing en-US for now
+			return fmt.Sprintf(`<a href="%s">%s</a>`, resolveAbsoluteRef("/en-US/"+strings.ReplaceAll(submatches[0][2], "\\", "/")+"/index.html", htmlPath), submatches[0][1])
+		})
+		s.SetHtml((htmlWithoutMarkdown))
+	})
+
 	html, err := doc.Html()
 	if err != nil {
 		panic(err)
 	}
+
 	html, err = minifier.String("text/html", html)
+
 	if err != nil {
 		panic(err)
 	}
@@ -134,37 +161,38 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string,
 		})
 	} else {
 		doc.Find(".simplecode_api").Each(func(i int, s *goquery.Selection) {
-			syntaxText := strings.TrimSpace(s.Text())
+			trimmedContents := strings.TrimSpace(s.Text())
 
-			matchedClass, err := regexp.MatchString(`(?m)^class\s+[UAS]\w*`, syntaxText)
+			// TODO refactor this into a lookup table (a lot of replicated code here)
+			matchedClass, err := regexp.MatchString(`(?m)(^|\))class\s+(PAPER2)?[UAS]\w*`, trimmedContents)
 
 			if err == nil && matchedClass {
 				entryType = "Class"
 				return
 			}
 
-			matchedStruct, err := regexp.MatchString(`(?m)(^|>)((struct)|(class))\s+(F|T)\w*`, syntaxText)
+			matchedStruct, err := regexp.MatchString(`(?m)(^|>)((struct)|(class))\s+(F|T)\w*`, trimmedContents)
 
 			if err == nil && matchedStruct {
 				entryType = "Struct"
 				return
 			}
 
-			matchedInterface, err := regexp.MatchString(`(?m)^class\s+I\w*`, syntaxText)
+			matchedInterface, err := regexp.MatchString(`(?m)(^|\))class\s+I\w*`, trimmedContents)
 
 			if err == nil && matchedInterface {
 				entryType = "Interface"
 				return
 			}
 
-			matchedEnum, err := regexp.MatchString(`(?m)^enum\s+(class\s+)?E\w*\s*{`, syntaxText)
+			matchedEnum, err := regexp.MatchString(`(?m)(^|\))enum\s+(class\s+)?E\w*\s*{`, trimmedContents)
 
 			if err == nil && matchedEnum {
 				entryType = "Enum"
 				return
 			}
 
-			matchedProperty, err := regexp.MatchString(`(?m)^UPROPERTY\(`, syntaxText)
+			matchedProperty, err := regexp.MatchString(`(?m)^UPROPERTY\(`, trimmedContents)
 
 			if err == nil && matchedProperty {
 				entryType = "Property"
@@ -200,6 +228,7 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string,
 		// Normal method
 		doc.Find("meta[name='title']").Each(func(i int, s *goquery.Selection) {
 			entryName, _ = s.Attr("content")
+			entryName = hhtml.UnescapeString(entryName)
 			if strings.Contains(entryName, "::") {
 				entryType = "Method"
 			}
@@ -218,6 +247,12 @@ func extractNameAndType(doc *goquery.Document, htmlPath string) (string, string,
 				entryType = "Method"
 			}
 		})
+
+		// Ommit fields from index, they just clutter the index and are not really useful
+		// In additional there are a lot of fields with duplicate names
+		if entryType == "Field" {
+			ommitFromIndex = true
+		}
 	}
 
 	return entryName, entryType, isValid, ommitFromIndex
