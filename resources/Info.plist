@@ -12,5 +12,7 @@
 		<true />
 		<key>dashIndexFilePath</key>
 		<string>en-US/index.html</string>
+		<key>DashDocSetFallbackURL</key>
+		<string>https://docs.unrealengine.com/</string>
 	</dict>
 </plist>

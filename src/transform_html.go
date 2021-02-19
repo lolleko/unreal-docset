@@ -43,11 +43,11 @@ func transformHTML(htmlPath string, r io.Reader) (entry, error) {
 		})
 	})
 
-	doc.Find("#page_head, #navWrapper, #splitter, #footer, #skinContainer, #feedbackButton, #feedbackMessage, #osContainer, #announcement, #courses").Each(func(i int, s *goquery.Selection) {
+	doc.Find("script, #page_head, #navWrapper, #splitter, #footer, #skinContainer, #feedbackButton, #feedbackMessage, #osContainer, #announcement, #courses, meta[name*='course'], meta[name*='twitter:card']").Each(func(i int, s *goquery.Selection) {
 		s.Remove()
 	})
 
-	// change abolsute urls to docs.unrealengine.com to relative urls
+	// change abolsute urls to docs.unrealengine.com, to relative urls
 	doc.Find("a[href*='docs.unrealengine.com']").Each(func(i int, s *goquery.Selection) {
 		s.SetAttr("href", resolveAbsoluteRef(s.AttrOr("href", ""), htmlPath))
 	})
@@ -56,11 +56,17 @@ func transformHTML(htmlPath string, r io.Reader) (entry, error) {
 	doc.Find("img[data-src]").Each(func(i int, s *goquery.Selection) {
 		s.SetAttr("src", s.AttrOr("data-src", ""))
 		s.RemoveAttr("data-src")
-		s.RemoveClass("lazy-load")
+		s.RemoveClass("lazyload")
+	})
+
+	// Remove picture tags, those cause issues in dash darkmode
+	doc.Find("picture").Each(func(i int, s *goquery.Selection) {
+		childrenHTML, _ := s.Html()
+		s.ReplaceWithHtml(fmt.Sprintf("<div>%s</div>", childrenHTML))
 	})
 
 	// add some exceptions for dark mode
-	doc.Find(".hero, .graph, iframe.embedded_video, .topics.item .subject, .topics.item .img_container, .topics.item img, .topics.item .color_container, .hero.background .imgContainer img").Each(func(i int, s *goquery.Selection) {
+	doc.Find(".topics.item .subject, .graph").Each(func(i int, s *goquery.Selection) {
 		s.AddClass("dash-ignore-dark-mode")
 	})
 
@@ -77,11 +83,6 @@ func transformHTML(htmlPath string, r io.Reader) (entry, error) {
 			s.AppendHtml(`<link rel="stylesheet" href=" ` + resolveAbsoluteRef(cssFile, htmlPath) + ` ">`)
 		}
 		s.AppendHtml(`<link rel="stylesheet" href=" ` + resolveAbsoluteRef("/Include/CSS/dash_style_overrides.css", htmlPath) + ` ">`)
-	})
-
-	// remove js
-	doc.Find("script").Each(func(i int, s *goquery.Selection) {
-		s.Remove()
 	})
 
 	// remove markdown links

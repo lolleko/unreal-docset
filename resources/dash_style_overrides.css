@@ -1,58 +1,78 @@
 .toc {
-    display: none;
+  display: none;
 }
 #seeAlso {
-    display: none;
+  display: none;
 }
 #contentContainer {
-    margin-left: 0px !important;
+  margin-left: 0px !important;
 }
 #page-container {
-    border-bottom: none;
+  border-bottom: none;
 }
 #maincol {
-    width: auto !important; padding: 0px 28px 28px 28px;
+  width: auto !important;
+  padding: 0px 28px 28px 28px;
 }
 #banner {
-    display: none;
+  display: none;
 }
 #egf {
-    padding: 0;
+  padding: 0;
 }
 .footer-social-container {
-    display: none;
+  display: none;
 }
 .footer-links-container {
-    display: none;
+  display: none;
 }
 .egf.legal {
-    padding: 0;
+  padding: 0;
 }
 #pageTags {
-    display: none;
+  display: none;
 }
 #crumbs {
-    float: none;
-    width: auto;
-    display: block;
+  float: none;
+  width: auto;
+  display: block;
 }
 .hero {
-    background-image: none;
-    background-color: rgb(42, 42, 42);
+  background-image: none;
+  background-color: rgb(42, 42, 42);
+}
+.hero.simple {
+  background-image: none;
+  background-color: rgb(42, 42, 42);
+  color: #fff;
+}
+.hero.simple h1 {
+  color: #fff;
 }
 .hero.background .imgContainer::after {
-    background-image: none;
+  background-image: none;
 }
 .hero h1 {
-    text-shadow: none;
+  text-shadow: none;
 }
 .hero h2 {
-    text-shadow: none;
+  text-shadow: none;
 }
 .hero a {
-    color: #fff;
+  color: #fff;
 }
 /* Fix topics beeing pushed down randomly (weird inline-block behavior) */
 .topicContainer {
-    vertical-align: top;
+  vertical-align: top;
+}
+
+.topics.item img,
+.full_feature img,
+.feature_section img {
+  opacity: 1;
+}
+
+.topics.item .text,
+.full_feature .item .text {
+  text-shadow: 2px 2px 8px #000;
 }

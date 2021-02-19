@@ -40,7 +40,7 @@ func scrapDocs(docsetDocumentsPath string, db *sql.DB) {
 	c.Limit(&colly.LimitRule{
 		DomainGlob:  "*docs.unrealengine.*",
 		Parallelism: 16,
-		Delay:       5 * time.Millisecond,
+		Delay:       6 * time.Millisecond,
 	})
 
 	c.OnRequest(func(r *colly.Request) {
