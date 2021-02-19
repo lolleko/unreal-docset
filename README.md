@@ -12,7 +12,7 @@ Should also work with [Zeal](https://zealdocs.org) and in a regular browser (jus
 ### Generating the docset
 
 * Run `make`
-* Run `./bin/unreal-docset [UnrealEngineInstallDir]/Engine/Documentation/Builds`
+* Run `./bin/unreal-docset`
 
 The documentation will be scrapped from `docs.unrealengine.com`.
 Scrapping requires around 7GB bandwidth and around 200k http requests.
